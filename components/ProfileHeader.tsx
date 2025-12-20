@@ -1,9 +1,21 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, Href } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
+import React from 'react';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export const ProfileHeader = () => {
+interface ProfileHeaderProps {
+  profile: {
+    avatar_url: string;
+    display_name: string;
+    username: string;
+    bio?: string | null;
+    follower_count: number;
+    following_count: number;
+    post_count: number;
+  };
+}
+
+export const ProfileHeader = ({ profile }: ProfileHeaderProps) => {
   const router = useRouter();
 
   return (
@@ -11,25 +23,24 @@ export const ProfileHeader = () => {
       {/* Avatar + Stats */}
       <View style={styles.topSection}>
         <View style={styles.avatarWrapper}>
-            <View style={styles.avatarBorder}> 
-                <Image
-                    source={{ uri: 'https://i.pravatar.cc/300?u=jacob_w' }}
-                    style={styles.avatar}
-                />
-            </View>
+          <View style={styles.avatarBorder}>
+            <Image
+              source={{ uri: profile.avatar_url }}
+              style={styles.avatar}
+            />
+          </View>
         </View>
-
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>54</Text>
+            <Text style={styles.statNumber}>{profile.post_count}</Text>
             <Text style={styles.statLabel}>Posts</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>834</Text>
-            <Text style={styles.statLabel}>Follow</Text>
+            <Text style={styles.statNumber}>{profile.follower_count}</Text>
+            <Text style={styles.statLabel}>Followers</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>162</Text>
+            <Text style={styles.statNumber}>{profile.following_count}</Text>
             <Text style={styles.statLabel}>Following</Text>
           </View>
         </View>
@@ -37,16 +48,15 @@ export const ProfileHeader = () => {
 
       {/* Bio */}
       <View style={styles.bioSection}>
-        <Text style={styles.bioName}>Jacob West</Text>
-        <Text style={styles.bioText}>
-            Digital goodies designer <Text style={styles.linkText}>@pixsellz</Text>
-        </Text>
-        <Text style={styles.bioText}>Everything is designed.</Text>
+        <Text style={styles.bioName}>{profile.display_name}</Text>
+        {profile.bio ? (
+          <Text style={styles.bioText}>{profile.bio}</Text>
+        ) : null}
       </View>
 
       {/* Edit Button */}
       <View style={styles.actionSection}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => router.push('/edit-profile' as Href)}
           style={styles.editButton}
         >
@@ -57,7 +67,7 @@ export const ProfileHeader = () => {
       {/* Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity style={styles.activeTab}>
-           <Ionicons name="grid-outline" size={24} color="black" />
+          <Ionicons name="grid-outline" size={24} color="black" />
         </TouchableOpacity>
       </View>
     </View>
