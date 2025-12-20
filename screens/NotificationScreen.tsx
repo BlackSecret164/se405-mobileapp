@@ -1,19 +1,135 @@
+import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
-import { SafeAreaView, SectionList, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, SafeAreaView, SectionList, StyleSheet, Text, View } from 'react-native';
 import { NotificationItem, NotificationItemData } from '../components/NotificationItem';
+import { useNotificationContext } from '../contexts/NotificationContext';
+import { fetchNotifications, markAllNotificationsRead, markNotificationsRead } from '../services/notificationApi';
+import { AggregatedNotification, Notification } from '../types/notification';
 
 interface NotificationSection {
   title: string;
   data: NotificationItemData[];
 }
 
-const NOTIFICATIONS_DATA: NotificationSection[] = [
-  { title: 'Last 7 days', data: [{ id: '1', type: 'suggestion', username: 'trg_dhuy11', content: '', subContent: '. You have 3 mutuals.', time: '5d', avatar: 'https://i.pravatar.cc/150?u=trg_dhuy11', isFollowing: false }] },
-  { title: 'Last 30 days', data: [{ id: '2', type: 'follow_alert', username: 'ben15anthony', content: 'started following you.', time: 'Nov 29', avatar: 'https://i.pravatar.cc/150?u=ben15', isFollowing: true }] },
-];
-
 const NotificationScreen = () => {
+  const [sections, setSections] = useState<NotificationSection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const { refreshUnreadCount } = useNotificationContext();
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await fetchNotifications();
+      
+      // Combine follows and aggregated into sections
+      const followSection: NotificationSection = {
+        title: 'Follows',
+        data: response.follows,
+      };
+      
+      const activitySection: NotificationSection = {
+        title: 'Activity',
+        data: response.aggregated,
+      };
+      
+      setSections([followSection, activitySection].filter(section => section.data.length > 0));
+    } catch (err) {
+      setError('Failed to load notifications');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const markAllAsRead = useCallback(async () => {
+    try {
+      await markAllNotificationsRead();
+      // Update local state to mark all as read
+      setSections(prevSections =>
+        prevSections.map(section => ({
+          ...section,
+          data: section.data.map(item => ({ ...item, is_read: true })),
+        }))
+      );
+      refreshUnreadCount();
+    } catch (err) {
+      console.error('Failed to mark all as read', err);
+    }
+  }, [refreshUnreadCount]);
+
+  const handleNotificationPress = useCallback(async (item: NotificationItemData) => {
+    // Mark as read
+    if ('id' in item && !item.is_read) {
+      try {
+        await markNotificationsRead([item.id]);
+        // Update local state
+        setSections(prevSections =>
+          prevSections.map(section => ({
+            ...section,
+            data: section.data.map(notification =>
+              'id' in notification && notification.id === item.id
+                ? { ...notification, is_read: true }
+                : notification
+            ),
+          }))
+        );
+        refreshUnreadCount();
+      } catch (err) {
+        console.error('Failed to mark as read', err);
+      }
+    }
+
+    // Navigate
+    if ('actor' in item) {
+      // Follow notification
+      const notification = item as Notification;
+      (router.push as any)(`/profile/${notification.actor_id}`);
+    } else {
+      // Aggregated notification
+      const aggregated = item as AggregatedNotification;
+      if (aggregated.post_id) {
+        (router.push as any)(`/post/${aggregated.post_id}`);
+      }
+    }
+  }, [router, refreshUnreadCount]);
+
+  // Poll every 30 seconds
+  useEffect(() => {
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [loadNotifications]);
+
+  // Mark all as read when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      markAllAsRead();
+    }, [markAllAsRead])
+  );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.center}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
@@ -23,17 +139,24 @@ const NotificationScreen = () => {
       </View>
 
       <SectionList
-        sections={NOTIFICATIONS_DATA}
-        keyExtractor={(item: { id: any; }) => item.id}
+        sections={sections}
+        keyExtractor={(item) => 'id' in item ? item.id.toString() : `${item.post_id}-${item.type}`}
         stickySectionHeadersEnabled={false}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }: { item: NotificationItemData }) => <NotificationItem item={item} />}
-        renderSectionHeader={({ section: { title } }: { section: NotificationSection }) => (
+        renderItem={({ item }) => (
+          <NotificationItem item={item} onPress={() => handleNotificationPress(item)} />
+        )}
+        renderSectionHeader={({ section: { title } }) => (
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{title}</Text>
           </View>
         )}
         contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <View style={styles.center}>
+            <Text style={styles.emptyText}>No notifications yet</Text>
+          </View>
+        }
       />
     </SafeAreaView>
   );
@@ -68,6 +191,19 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 20,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+  },
+  emptyText: {
+    color: '#6b7280',
+    fontSize: 16,
   },
 });
 
