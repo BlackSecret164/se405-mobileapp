@@ -1,98 +1,121 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { CommentSheet, CommentSheetRef } from "@/components/comments";
+import { FeedList } from "@/components/feed";
+import { Header } from "@/components/ui/header";
+import { useFeed } from "@/hooks/use-feed";
+import { useFocusEffect } from "expo-router";
+import React, { useCallback, useRef } from "react";
+import { ActivityIndicator, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const {
+    posts,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    error,
+    refresh,
+    loadMore,
+    handleLikeToggle,
+    handleDeletePost,
+    updateCommentCount,
+  } = useFeed();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const commentSheetRef = useRef<CommentSheetRef>(null);
+
+  // Auto refresh feed when tab is focused (e.g., after creating a new post)
+  useFocusEffect(
+    useCallback(() => {
+      // Only refresh if we already have posts (skip initial load)
+      if (posts.length > 0) {
+        refresh();
+      }
+    }, [posts.length > 0, refresh])
+  );
+
+  const handleRefresh = useCallback(async () => {
+    await refresh();
+  }, [refresh]);
+
+  const handleLoadMore = useCallback(() => {
+    loadMore();
+  }, [loadMore]);
+
+  const handleCommentPress = useCallback((postId: number) => {
+    // Open comment sheet
+    commentSheetRef.current?.open(postId);
+  }, []);
+
+  const handleUserPress = useCallback((userId: number) => {
+    // Navigate to user profile - will implement later
+    console.log(`Open profile for user ${userId}`);
+  }, []);
+
+  const handleCommentCountChange = useCallback(
+    (postId: number, delta: number) => {
+      updateCommentCount(postId, delta);
+    },
+    [updateCommentCount]
+  );
+
+  // Show loading state on initial load
+  if (isLoading) {
+    return (
+      <SafeAreaView
+        className="flex-1 bg-white dark:bg-zinc-900"
+        edges={["top"]}
+      >
+        <Header />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#0a7ea4" />
+          <Text className="mt-4 text-gray-500">Loading feed...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show error state
+  if (error && posts.length === 0) {
+    return (
+      <SafeAreaView
+        className="flex-1 bg-white dark:bg-zinc-900"
+        edges={["top"]}
+      >
+        <Header />
+        <View className="flex-1 items-center justify-center px-4">
+          <Text className="text-red-500 text-center mb-4">{error}</Text>
+          <Text className="text-blue-500 underline" onPress={handleRefresh}>
+            Tap to retry
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-white dark:bg-zinc-900" edges={["top"]}>
+      {/* Sticky Header */}
+      <Header />
+
+      {/* Feed */}
+      <FeedList
+        posts={posts}
+        onRefresh={handleRefresh}
+        onLoadMore={handleLoadMore}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore}
+        onLikeToggle={handleLikeToggle}
+        onCommentPress={handleCommentPress}
+        onUserPress={handleUserPress}
+        onDeletePost={handleDeletePost}
+      />
+
+      {/* Comment Sheet */}
+      <CommentSheet
+        ref={commentSheetRef}
+        postId={null}
+        onCommentCountChange={handleCommentCountChange}
+      />
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
