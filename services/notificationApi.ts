@@ -1,3 +1,5 @@
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Platform } from 'react-native';
 import { NotificationListResponse } from '../types/notification';
@@ -16,18 +18,21 @@ const api = axios.create({
   },
 });
 
-// 3. Hàm lấy Token (Giữ nguyên logic của bạn)
+// 3. Hàm lấy Token thực tế từ AsyncStorage
 const getAuthToken = async (): Promise<string | null> => {
-  // TODO: Implement thực tế với AsyncStorage hoặc SecureStore
-  return 'your-actual-auth-token-here';
+  return await AsyncStorage.getItem('userToken'); // Key này phải khớp với lúc bạn lưu token
 };
 
 // 4. Axios Interceptor: Tự động đính kèm Token vào mọi request
 api.interceptors.request.use(
   async (config) => {
     const token = await getAuthToken();
+    console.log('[notificationApi] Token from AsyncStorage:', token);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('[notificationApi] Authorization header set:', config.headers.Authorization);
+    } else {
+      console.warn('[notificationApi] No token found in AsyncStorage!');
     }
     return config;
   },
