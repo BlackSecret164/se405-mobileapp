@@ -3,13 +3,20 @@
  * Central place for API configuration and base fetch wrapper
  */
 
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 
-// ⚠️ CHANGE THIS to your computer's local IP address if using physical device
-// Find your IP: Windows -> ipconfig | Mac -> ifconfig | Linux -> ip addr
-// Example: "192.168.1.100"
-//172.20.10.5
-const LOCAL_IP = "192.168.31.47"; // <-- UPDATE THIS!
+// Get IP dynamically from Expo dev server
+function getLocalIP(): string {
+  // expo-constants provides the dev server's host URI (e.g., "192.168.1.100:8081")
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const ip = hostUri.split(":")[0];
+    if (ip) return ip;
+  }
+  // Fallback for when hostUri is not available
+  return "localhost";
+}
 
 // Determine the correct base URL based on platform
 function getBaseUrl(): string {
@@ -17,14 +24,16 @@ function getBaseUrl(): string {
 
   if (__DEV__) {
     // Development mode
+    const localIP = getLocalIP();
+
     if (Platform.OS === "android") {
       // Android emulator uses 10.0.2.2 to access host machine's localhost
       // Physical device needs the computer's local IP
-      return `http://${LOCAL_IP}:8080`;
+      return `http://${localIP}:8080`;
     } else if (Platform.OS === "ios") {
       // iOS simulator can use localhost directly
       // Physical device needs the computer's local IP
-      return `http://${LOCAL_IP}:8080`;
+      return `http://${localIP}:8080`;
     } else {
       // Web or other platforms
       return "http://localhost:8080";
@@ -42,7 +51,7 @@ export const API_CONFIG = {
 // Temporary access token for development (user: alice)
 // TODO: Replace with proper auth flow later
 const TEMP_ACCESS_TOKEN =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjcxMTUzMjYsImlhdCI6MTc2NjIxNTMyNiwidXNlcl9pZCI6MX0.-ruTyI7AirAlukXueQ7RF3q_ZbZToSLCdajk4lAyVTw";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjcyMDI4OTUsImlhdCI6MTc2NjMwMjg5NSwidXNlcl9pZCI6MX0.tRRS75qv_ub_IObN_PpP4q3WRnhDCpWgci02brIqe2Q";
 
 interface FetchOptions extends RequestInit {
   skipAuth?: boolean;

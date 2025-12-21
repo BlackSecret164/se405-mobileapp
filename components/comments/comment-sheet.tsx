@@ -1,6 +1,12 @@
-import { getCommentsForPost } from "@/data/mock-comments";
+import { useAuth } from "@/contexts/auth-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Comment, CommentWithReplies } from "@/types/comment";
+import {
+  ApiComment,
+  createComment,
+  deleteComment,
+  getComments,
+} from "@/services/comment-service";
+import { ApiCommentWithReplies } from "@/types/comment";
 import { Ionicons } from "@expo/vector-icons";
 import {
   BottomSheetBackdrop,
@@ -24,6 +30,7 @@ import { CommentItem } from "./comment-item";
 
 interface CommentSheetProps {
   postId: number | null;
+  onCommentCountChange?: (postId: number, delta: number) => void;
 }
 
 export interface CommentSheetRef {
@@ -32,16 +39,18 @@ export interface CommentSheetRef {
 }
 
 export const CommentSheet = forwardRef<CommentSheetRef, CommentSheetProps>(
-  function CommentSheet(_, ref) {
+  function CommentSheet({ onCommentCountChange }, ref) {
+    const { currentUser } = useAuth();
     const colorScheme = useColorScheme();
     const insets = useSafeAreaInsets();
     const bottomSheetRef = useRef<BottomSheetModal>(null);
     const inputRef = useRef<CommentInputRef>(null);
     const [currentPostId, setCurrentPostId] = useState<number | null>(null);
-    const [comments, setComments] = useState<CommentWithReplies[]>([]);
-    const [replyingTo, setReplyingTo] = useState<CommentWithReplies | null>(
+    const [comments, setComments] = useState<ApiCommentWithReplies[]>([]);
+    const [replyingTo, setReplyingTo] = useState<ApiCommentWithReplies | null>(
       null
     );
+    const [isLoading, setIsLoading] = useState(false);
     const [expandedComments, setExpandedComments] = useState<Set<number>>(
       new Set()
     );
@@ -55,14 +64,65 @@ export const CommentSheet = forwardRef<CommentSheetRef, CommentSheetProps>(
     const backgroundColor = colorScheme === "dark" ? "#18181b" : "#ffffff";
     const handleIndicatorColor = colorScheme === "dark" ? "#71717a" : "#d4d4d8";
 
+    // Helper function to organize flat comments into nested structure
+    const organizeComments = useCallback(
+      (flatComments: ApiComment[]): ApiCommentWithReplies[] => {
+        const commentMap = new Map<number, ApiCommentWithReplies>();
+        const topLevelComments: ApiCommentWithReplies[] = [];
+
+        // First pass: create all comment objects with empty replies
+        flatComments.forEach((comment) => {
+          commentMap.set(comment.id, { ...comment, replies: [] });
+        });
+
+        // Second pass: organize into parent-child relationships
+        flatComments.forEach((comment) => {
+          const commentWithReplies = commentMap.get(comment.id)!;
+          if (comment.parent_comment_id) {
+            const parent = commentMap.get(comment.parent_comment_id);
+            if (parent) {
+              parent.replies = parent.replies || [];
+              parent.replies.push(commentWithReplies);
+            } else {
+              // Parent not found, treat as top-level
+              topLevelComments.push(commentWithReplies);
+            }
+          } else {
+            topLevelComments.push(commentWithReplies);
+          }
+        });
+
+        return topLevelComments;
+      },
+      []
+    );
+
+    // Fetch comments from API
+    const fetchComments = useCallback(
+      async (postId: number) => {
+        setIsLoading(true);
+        try {
+          const response = await getComments(postId);
+          const organizedComments = organizeComments(response.comments);
+          setComments(organizedComments);
+        } catch (error) {
+          console.error("Failed to fetch comments:", error);
+          setComments([]);
+        } finally {
+          setIsLoading(false);
+        }
+      },
+      [organizeComments]
+    );
+
     // Expose methods to parent
     useImperativeHandle(ref, () => ({
       open: (postId: number) => {
         setCurrentPostId(postId);
-        setComments(getCommentsForPost(postId));
         setReplyingTo(null);
         setExpandedComments(new Set());
         setVisibleRepliesCounts(new Map());
+        fetchComments(postId);
         bottomSheetRef.current?.present();
       },
       close: () => {
@@ -75,7 +135,7 @@ export const CommentSheet = forwardRef<CommentSheetRef, CommentSheetProps>(
       bottomSheetRef.current?.dismiss();
     }, []);
 
-    const handleReply = useCallback((comment: CommentWithReplies) => {
+    const handleReply = useCallback((comment: ApiCommentWithReplies) => {
       setReplyingTo(comment);
       // Focus input after a short delay to allow state update
       setTimeout(() => {
@@ -115,46 +175,87 @@ export const CommentSheet = forwardRef<CommentSheetRef, CommentSheetProps>(
     }, []);
 
     const handleSubmitComment = useCallback(
-      (content: string, parentCommentId: number | null) => {
-        // Create a new mock comment
-        const newComment: Comment = {
-          id: Date.now(),
-          user: {
-            id: 999,
-            username: "current_user",
-            display_name: "You",
-            avatar_url: "https://i.pravatar.cc/150?img=68",
-          },
-          content,
-          created_at: new Date().toISOString(),
-          parent_comment_id: parentCommentId,
-          reply_count: 0,
-          replies: [],
-        };
+      async (content: string, parentCommentId: number | null) => {
+        if (!currentPostId) return;
 
-        if (parentCommentId) {
-          // Add as reply to existing comment
-          setComments((prev) =>
-            prev.map((comment) => {
-              if (comment.id === parentCommentId) {
-                return {
-                  ...comment,
-                  reply_count: comment.reply_count + 1,
-                  replies: [...(comment.replies || []), newComment],
-                };
-              }
-              return comment;
-            })
+        try {
+          const newComment = await createComment(
+            currentPostId,
+            content,
+            parentCommentId
           );
-        } else {
-          // Add as new top-level comment
-          setComments((prev) => [newComment, ...prev]);
-        }
 
-        // Clear reply state
-        setReplyingTo(null);
+          const newCommentWithReplies: ApiCommentWithReplies = {
+            ...newComment,
+            replies: [],
+          };
+
+          if (parentCommentId) {
+            // Add as reply to existing comment
+            setComments((prev) =>
+              prev.map((comment) => {
+                if (comment.id === parentCommentId) {
+                  return {
+                    ...comment,
+                    replies: [
+                      ...(comment.replies || []),
+                      newCommentWithReplies,
+                    ],
+                  };
+                }
+                return comment;
+              })
+            );
+            // Auto-expand the parent comment to show the new reply
+            setExpandedComments((prev) => new Set(prev).add(parentCommentId));
+          } else {
+            // Add as new top-level comment
+            setComments((prev) => [newCommentWithReplies, ...prev]);
+          }
+
+          // Update comment count on post
+          onCommentCountChange?.(currentPostId, 1);
+
+          // Clear reply state
+          setReplyingTo(null);
+        } catch (error) {
+          console.error("Failed to create comment:", error);
+        }
       },
-      []
+      [currentPostId, onCommentCountChange]
+    );
+
+    const handleDeleteComment = useCallback(
+      async (commentId: number) => {
+        if (!currentPostId) return;
+
+        try {
+          await deleteComment(currentPostId, commentId);
+
+          // Remove comment from state (check both top-level and replies)
+          setComments((prev) => {
+            // First, try to remove from top-level comments
+            const filteredComments = prev.filter((c) => c.id !== commentId);
+
+            // If length changed, it was a top-level comment
+            if (filteredComments.length !== prev.length) {
+              return filteredComments;
+            }
+
+            // Otherwise, it might be a reply - remove from replies
+            return prev.map((comment) => ({
+              ...comment,
+              replies: comment.replies?.filter((r) => r.id !== commentId) || [],
+            }));
+          });
+
+          // Update comment count on post
+          onCommentCountChange?.(currentPostId, -1);
+        } catch (error) {
+          console.error("Failed to delete comment:", error);
+        }
+      },
+      [currentPostId, onCommentCountChange]
     );
 
     const renderBackdrop = useCallback(
@@ -170,10 +271,12 @@ export const CommentSheet = forwardRef<CommentSheetRef, CommentSheetProps>(
     );
 
     const renderComment = useCallback(
-      ({ item }: { item: Comment }) => (
+      ({ item }: { item: ApiCommentWithReplies }) => (
         <CommentItem
           comment={item}
           onReply={handleReply}
+          onDelete={handleDeleteComment}
+          currentUserId={currentUser?.id}
           isExpanded={expandedComments.has(item.id)}
           onToggleReplies={handleToggleReplies}
           visibleRepliesCount={visibleRepliesCounts.get(item.id) || 5}
@@ -182,6 +285,8 @@ export const CommentSheet = forwardRef<CommentSheetRef, CommentSheetProps>(
       ),
       [
         handleReply,
+        handleDeleteComment,
+        currentUser?.id,
         expandedComments,
         handleToggleReplies,
         visibleRepliesCounts,
@@ -269,7 +374,7 @@ export const CommentSheet = forwardRef<CommentSheetRef, CommentSheetProps>(
         {/* Comments List */}
         <BottomSheetFlatList
           data={comments}
-          keyExtractor={(item: Comment) => item.id.toString()}
+          keyExtractor={(item: ApiCommentWithReplies) => item.id.toString()}
           renderItem={renderComment}
           extraData={[expandedComments, visibleRepliesCounts]}
           contentContainerStyle={{
