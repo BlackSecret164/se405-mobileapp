@@ -3,8 +3,8 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, SectionList, StyleSheet, Text, View } from 'react-native';
 import { NotificationItem, NotificationItemData } from '../components/NotificationItem';
-import { useNotificationContext } from '../contexts/NotificationContext';
-import { fetchNotifications, markAllNotificationsRead, markNotificationsRead } from '../services/notificationApi';
+// Đã xóa import NotificationContext
+import { apiService } from '../services/notificationApi'; 
 import { AggregatedNotification, Notification } from '../types/notification';
 
 interface NotificationSection {
@@ -17,14 +17,14 @@ const NotificationScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { refreshUnreadCount } = useNotificationContext();
 
+  // Hàm tải danh sách thông báo
   const loadNotifications = useCallback(async () => {
     try {
       setError(null);
-      const response = await fetchNotifications();
+      // Gọi API lấy thông báo qua apiService
+      const response = await apiService.fetchNotifications(20); 
       
-      // Combine follows and aggregated into sections
       const followSection: NotificationSection = {
         title: 'Follows',
         data: response.follows,
@@ -35,6 +35,7 @@ const NotificationScreen = () => {
         data: response.aggregated,
       };
       
+      // Lọc bỏ các section trống
       setSections([followSection, activitySection].filter(section => section.data.length > 0));
     } catch (err) {
       setError('Failed to load notifications');
@@ -44,28 +45,30 @@ const NotificationScreen = () => {
     }
   }, []);
 
+  // Hàm đánh dấu tất cả là đã đọc
   const markAllAsRead = useCallback(async () => {
     try {
-      await markAllNotificationsRead();
-      // Update local state to mark all as read
+      await apiService.markAllNotificationsRead(); //
+      
+      // Cập nhật trạng thái hiển thị tại chỗ
       setSections(prevSections =>
         prevSections.map(section => ({
           ...section,
           data: section.data.map(item => ({ ...item, is_read: true })),
         }))
       );
-      refreshUnreadCount();
     } catch (err) {
       console.error('Failed to mark all as read', err);
     }
-  }, [refreshUnreadCount]);
+  }, []);
 
+  // Xử lý khi nhấn vào một thông báo cụ thể
   const handleNotificationPress = useCallback(async (item: NotificationItemData) => {
-    // Mark as read
+    // 1. Đánh dấu đã đọc nếu tin nhắn chưa đọc
     if ('id' in item && !item.is_read) {
       try {
-        await markNotificationsRead([item.id]);
-        // Update local state
+        await apiService.markNotificationsRead([item.id]); //
+        
         setSections(prevSections =>
           prevSections.map(section => ({
             ...section,
@@ -76,34 +79,33 @@ const NotificationScreen = () => {
             ),
           }))
         );
-        refreshUnreadCount();
       } catch (err) {
         console.error('Failed to mark as read', err);
       }
     }
 
-    // Navigate
+    // 2. Điều hướng dựa trên loại thông báo
     if ('actor' in item) {
-      // Follow notification
+      // Thông báo Follow -> Dẫn đến Profile người đó
       const notification = item as Notification;
-      (router.push as any)(`/profile/${notification.actor_id}`);
+      router.push(`/profile/${notification.actor_id}` as any);
     } else {
-      // Aggregated notification
+      // Thông báo Like/Comment -> Dẫn đến chi tiết bài viết
       const aggregated = item as AggregatedNotification;
       if (aggregated.post_id) {
-        (router.push as any)(`/post/${aggregated.post_id}`);
+        router.push(`/post/${aggregated.post_id}` as any);
       }
     }
-  }, [router, refreshUnreadCount]);
+  }, [router]);
 
-  // Poll every 30 seconds
+  // Tự động làm mới danh sách mỗi 30 giây (Polling)
   useEffect(() => {
     loadNotifications();
     const interval = setInterval(loadNotifications, 30000);
     return () => clearInterval(interval);
   }, [loadNotifications]);
 
-  // Mark all as read when screen is focused
+  // Đánh dấu tất cả đã đọc khi người dùng vào màn hình này
   useFocusEffect(
     useCallback(() => {
       markAllAsRead();
@@ -114,17 +116,7 @@ const NotificationScreen = () => {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.center}>
-          <ActivityIndicator size="large" />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (error) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.center}>
-          <Text style={styles.errorText}>{error}</Text>
+          <ActivityIndicator size="large" color="#000" />
         </View>
       </SafeAreaView>
     );
@@ -163,48 +155,19 @@ const NotificationScreen = () => {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+  safeArea: { flex: 1, backgroundColor: '#fff' },
   headerContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6', 
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  sectionHeader: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  listContent: {
-    paddingBottom: 20,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 16,
-  },
-  emptyText: {
-    color: '#6b7280',
-    fontSize: 16,
-  },
+  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#000' },
+  sectionHeader: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 10, marginTop: 10 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#000' },
+  listContent: { paddingBottom: 20 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 },
+  emptyText: { color: '#6b7280', fontSize: 16 },
 });
 
 export default NotificationScreen;

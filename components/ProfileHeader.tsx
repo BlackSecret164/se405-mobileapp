@@ -1,3 +1,4 @@
+// components/ProfileHeader.tsx
 import { Ionicons } from '@expo/vector-icons';
 import { Href, useRouter } from 'expo-router';
 import React from 'react';
@@ -5,6 +6,7 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface ProfileHeaderProps {
   profile: {
+    id: number; // Thêm id để điều hướng
     avatar_url: string;
     display_name: string;
     username: string;
@@ -18,16 +20,20 @@ interface ProfileHeaderProps {
 export const ProfileHeader = ({ profile }: ProfileHeaderProps) => {
   const router = useRouter();
 
+  // Hàm helper để điều hướng đến danh sách follow
+  const navigateToFollowList = (type: 'followers' | 'following') => {
+    router.push({
+      pathname: `/follow-list/${profile.id}`,
+      params: { type }
+    } as Href);
+  };
+
   return (
     <View style={styles.container}>
-      {/* Avatar + Stats */}
       <View style={styles.topSection}>
         <View style={styles.avatarWrapper}>
           <View style={styles.avatarBorder}>
-            <Image
-              source={{ uri: profile.avatar_url }}
-              style={styles.avatar}
-            />
+            <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
           </View>
         </View>
         <View style={styles.statsContainer}>
@@ -35,14 +41,24 @@ export const ProfileHeader = ({ profile }: ProfileHeaderProps) => {
             <Text style={styles.statNumber}>{profile.post_count}</Text>
             <Text style={styles.statLabel}>Posts</Text>
           </View>
-          <View style={styles.statItem}>
+
+          {/* Clickable Followers */}
+          <TouchableOpacity
+            style={styles.statItem}
+            onPress={() => navigateToFollowList('followers')}
+          >
             <Text style={styles.statNumber}>{profile.follower_count}</Text>
             <Text style={styles.statLabel}>Followers</Text>
-          </View>
-          <View style={styles.statItem}>
+          </TouchableOpacity>
+
+          {/* Clickable Following */}
+          <TouchableOpacity
+            style={styles.statItem}
+            onPress={() => navigateToFollowList('following')}
+          >
             <Text style={styles.statNumber}>{profile.following_count}</Text>
             <Text style={styles.statLabel}>Following</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -90,9 +106,9 @@ const styles = StyleSheet.create({
   },
   avatarBorder: {
     padding: 2,
-    borderRadius: 999, 
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#d1d5db', 
+    borderColor: '#d1d5db',
   },
   avatar: {
     width: 80,
@@ -114,7 +130,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 14,
-    color: '#111827', 
+    color: '#111827',
   },
   bioSection: {
     paddingHorizontal: 16,
@@ -131,7 +147,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   linkText: {
-    color: '#2563eb', 
+    color: '#2563eb',
   },
   actionSection: {
     paddingHorizontal: 16,

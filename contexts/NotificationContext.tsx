@@ -1,5 +1,6 @@
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { fetchUnreadCount } from '../services/notificationApi';
+// SỬA TẠI ĐÂY: Import apiService thay vì hàm rời
+import { apiService } from '../services/notificationApi';
 
 interface NotificationContextType {
   unreadCount: number;
@@ -21,16 +22,19 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshUnreadCount = async () => {
     try {
-      const response = await fetchUnreadCount();
+      // SỬA TẠI ĐÂY: Gọi hàm thông qua đối tượng apiService
+      const response = await apiService.fetchUnreadCount();
+      // Đảm bảo truy cập đúng thuộc tính unread_count từ backend
       setUnreadCount(response.unread_count);
     } catch (err) {
+      // Lỗi bạn nhìn thấy trong console xuất phát từ dòng này khi fetchUnreadCount bị undefined
       console.error('Failed to fetch unread count', err);
     }
   };
 
   useEffect(() => {
     refreshUnreadCount();
-    // Poll every 30 seconds
+    // Tự động cập nhật số lượng thông báo chưa đọc mỗi 30 giây
     const interval = setInterval(refreshUnreadCount, 30000);
     return () => clearInterval(interval);
   }, []);

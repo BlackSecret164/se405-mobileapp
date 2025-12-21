@@ -1,68 +1,80 @@
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AggregatedNotification, Notification } from '../types/notification';
 
 export type NotificationItemData = Notification | AggregatedNotification;
 
-const formatNotificationText = (item: NotificationItemData): { username: string; content: string; subContent: string; time: string; avatar: string } => {
-  if ('actor' in item) {
-    // Individual Notification (follow)
+const formatNotificationText = (item: NotificationItemData) => {
+  const isFollow = 'actor' in item;
+
+  if (isFollow) {
+    // 1. Follow Notification (Individual)
     const notification = item as Notification;
-    const actor = notification.actor;
     return {
-      username: actor?.username || '',
-      content: notification.type === 'follow' ? 'started following you.' : '',
-      subContent: '',
-      time: new Date(notification.created_at).toLocaleDateString(),
-      avatar: actor?.avatar_url || '',
+      username: notification.actor?.username || 'Someone',
+      content: 'started following you.',
+      time: notification.created_at,
+      avatar: notification.actor?.avatar_url || '',
     };
   } else {
-    // AggregatedNotification
+    // 2. Aggregated Notification (Like/Comment)
     const aggregated = item as AggregatedNotification;
-    const firstActor = aggregated.actors[0];
-    const othersCount = aggregated.total_count - 1;
+    const actors = aggregated.actors || [];
+    const firstActor = actors[0];
+    const uniqueActorsCount = actors.length; 
+    const totalCount = aggregated.total_count || 1; 
     const action = aggregated.type === 'like' ? 'liked' : 'commented on';
-    const content = othersCount > 0
-      ? `${firstActor.username} and ${othersCount} others ${action} your post`
-      : `${firstActor.username} ${action} your post`;
+
+    let contentText = '';
+
+    // English Logic for Aggregation
+    if (uniqueActorsCount > 1) {
+      // Case: Multiple different people
+      contentText = `and ${uniqueActorsCount - 1} other${uniqueActorsCount - 1 > 1 ? 's' : ''} ${action} your post.`;
+    } else if (totalCount > 1) {
+      // Case: One person acting multiple times
+      contentText = `${action} your post ${totalCount} times.`;
+    } else {
+      // Case: One person acting once
+      contentText = `${action} your post.`;
+    }
+
     return {
-      username: firstActor.username,
-      content,
-      subContent: '',
-      time: new Date(aggregated.latest_at).toLocaleDateString(),
-      avatar: firstActor.avatar_url || '',
+      username: firstActor?.username || 'Someone',
+      content: contentText,
+      time: aggregated.latest_at,
+      avatar: firstActor?.avatar_url || '',
     };
   }
 };
 
 export const NotificationItem = ({ item, onPress }: { item: NotificationItemData; onPress: () => void }) => {
-  const isSystem = false; // No system notifications in new structure
-  const { username, content, subContent, time, avatar } = formatNotificationText(item);
+  const { username, content, time, avatar } = formatNotificationText(item);
   const isRead = 'is_read' in item ? item.is_read : false;
 
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity 
+      style={[styles.container, !isRead && styles.unreadContainer]} 
+      onPress={onPress}
+    >
       <View style={styles.leftContent}>
-        {isSystem ? (
-            <View style={styles.systemIconContainer}>
-                 <Ionicons name="logo-instagram" size={24} color="black" />
-            </View>
-        ) : (
-            <Image 
-                source={{ uri: avatar }} 
-                style={styles.avatar} 
-            />
-        )}
+        {/* User Avatar */}
+        <Image 
+          source={{ uri: avatar || 'https://via.placeholder.com/150' }} 
+          style={styles.avatar} 
+        />
         <View style={styles.textWrapper}>
-          <Text style={[styles.textContent, !isRead && styles.unreadText]}>
+          <Text style={styles.textContent}>
+            {/* Bold Username rendered separately to avoid duplication */}
             <Text style={styles.username}>{username} </Text>
-            <Text>{content}</Text>
-            {subContent && <Text style={styles.subContent}>{subContent}</Text>}
-            <Text style={styles.timeText}> {time}</Text>
+            <Text style={styles.bodyText}>{content}</Text>
+            {/* Locale changed to English */}
+            <Text style={styles.timeText}> {new Date(time).toLocaleDateString('en-US')}</Text>
           </Text>
         </View>
       </View>
+      {/* Unread Indicator */}
+      {!isRead && <View style={styles.unreadDot} />}
     </TouchableOpacity>
   );
 };
@@ -71,33 +83,24 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 16,
     backgroundColor: '#fff',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#f3f4f6',
+  },
+  unreadContainer: {
+    backgroundColor: '#f0f7ff',
   },
   leftContent: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: 8,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb', 
-  },
-  systemIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     marginRight: 12,
   },
   textWrapper: {
@@ -105,20 +108,24 @@ const styles = StyleSheet.create({
   },
   textContent: {
     fontSize: 14,
-    lineHeight: 20,
-    color: '#000',
-  },
-  unreadText: {
-    fontWeight: 'bold',
+    lineHeight: 18,
   },
   username: {
     fontWeight: 'bold',
+    color: '#000',
   },
-  subContent: {
-    color: '#6b7280', 
+  bodyText: {
+    color: '#262626',
   },
   timeText: {
-    color: '#9ca3af', 
+    color: '#8e8e8e',
     fontSize: 12,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#0095f6',
+    marginLeft: 8,
   },
 });
