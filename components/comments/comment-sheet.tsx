@@ -119,6 +119,7 @@ export const CommentSheet = forwardRef<CommentSheetRef, CommentSheetProps>(
     useImperativeHandle(ref, () => ({
       open: (postId: number) => {
         setCurrentPostId(postId);
+        setComments([]); // Clear old comments immediately to prevent flash
         setReplyingTo(null);
         setExpandedComments(new Set());
         setVisibleRepliesCounts(new Map());

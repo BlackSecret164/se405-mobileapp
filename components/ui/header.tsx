@@ -1,8 +1,7 @@
-import { View, Pressable } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Text } from "react-native";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Pressable, Text, View } from "react-native";
 
 interface HeaderProps {
   showBackButton?: boolean;
@@ -48,7 +47,7 @@ export function Header({ showBackButton = false, onBackPress }: HeaderProps) {
         className="text-2xl text-black dark:text-white"
         style={{ fontFamily: "System", fontStyle: "italic", fontWeight: "600" }}
       >
-        T1 vô địch CKTG
+        Iamstagram
       </Text>
 
       {/* Right: Search button */}
