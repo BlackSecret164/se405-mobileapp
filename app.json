@@ -40,9 +40,16 @@
         }
       ]
     ],
+    "extra": {
+      "eas": {
+        "projectId": "a0cb5a13-96b2-4173-870a-578de2c5484f"
+      },
+      "router": {}
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "owner": "binhnguyen21503"
   }
 }
