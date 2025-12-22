@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   ApiComment,
@@ -15,7 +15,7 @@ import {
   BottomSheetFooterProps,
   BottomSheetModal,
 } from "@gorhom/bottom-sheet";
-import React, {
+import {
   forwardRef,
   useCallback,
   useImperativeHandle,

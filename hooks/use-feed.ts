@@ -3,6 +3,7 @@
  * Custom hook to manage feed state with infinite scroll pagination
  */
 
+import { useAuth } from "@/contexts/AuthContext";
 import {
   deletePost,
   getFeed,
@@ -28,6 +29,7 @@ interface UseFeedReturn {
 }
 
 export function useFeed(): UseFeedReturn {
+  const { isLoggedIn } = useAuth();
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -61,6 +63,8 @@ export function useFeed(): UseFeedReturn {
    * Refresh feed (pull-to-refresh)
    */
   const refresh = useCallback(async () => {
+    if (!isLoggedIn) return;
+
     try {
       setIsRefreshing(true);
       setError(null);
@@ -76,14 +80,14 @@ export function useFeed(): UseFeedReturn {
     } finally {
       setIsRefreshing(false);
     }
-  }, []);
+  }, [isLoggedIn]);
 
   /**
    * Load more posts (infinite scroll)
    */
   const loadMore = useCallback(async () => {
-    // Don't load more if already loading or no more posts
-    if (isLoadingMore || !hasMore || !nextCursor) {
+    // Don't load more if already loading, no more posts, or not logged in
+    if (!isLoggedIn || isLoadingMore || !hasMore || !nextCursor) {
       return;
     }
 
@@ -102,7 +106,7 @@ export function useFeed(): UseFeedReturn {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, hasMore, nextCursor]);
+  }, [isLoggedIn, isLoadingMore, hasMore, nextCursor]);
 
   /**
    * Handle like/unlike with optimistic update
@@ -172,10 +176,16 @@ export function useFeed(): UseFeedReturn {
     );
   }, []);
 
-  // Fetch initial feed on mount
+  // Fetch initial feed on mount - only when logged in
   useEffect(() => {
-    fetchInitialFeed();
-  }, [fetchInitialFeed]);
+    if (isLoggedIn) {
+      fetchInitialFeed();
+    } else {
+      // Reset state when not logged in
+      setPosts([]);
+      setIsLoading(false);
+    }
+  }, [isLoggedIn, fetchInitialFeed]);
 
   return {
     posts,

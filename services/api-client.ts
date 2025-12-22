@@ -48,10 +48,7 @@ export const API_CONFIG = {
   BASE_URL: getBaseUrl(),
 };
 
-// Temporary access token for development (user: alice)
-// TODO: Replace with proper auth flow later
-const TEMP_ACCESS_TOKEN =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjcyMDI4OTUsImlhdCI6MTc2NjMwMjg5NSwidXNlcl9pZCI6MX0.tRRS75qv_ub_IObN_PpP4q3WRnhDCpWgci02brIqe2Q";
+import { getAccessToken } from "./api";
 
 interface FetchOptions extends RequestInit {
   skipAuth?: boolean;
@@ -71,11 +68,12 @@ export async function apiFetch<T>(
     ...customHeaders,
   };
 
-  // Add Authorization header if not skipped
+  // Add Authorization header if not skipped and token exists
   if (!skipAuth) {
-    (headers as Record<string, string>)[
-      "Authorization"
-    ] = `Bearer ${TEMP_ACCESS_TOKEN}`;
+    const token = getAccessToken();
+    if (token) {
+      (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+    }
   }
 
   const url = `${API_CONFIG.BASE_URL}${endpoint}`;

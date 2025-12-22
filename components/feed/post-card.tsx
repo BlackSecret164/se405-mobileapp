@@ -1,9 +1,9 @@
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { FeedPost } from "@/types/feed";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Alert, Modal, Pressable, Text, View } from "react-native";
 import { ImageCarousel } from "./image-carousel";
 
