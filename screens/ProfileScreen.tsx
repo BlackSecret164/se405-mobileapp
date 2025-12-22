@@ -14,41 +14,42 @@ import {
   TouchableOpacity
 } from 'react-native';
 import { ProfileHeader } from '../components/ProfileHeader';
-import { fetchUserPosts, fetchUserProfile } from '../services/userApi';
+// Sử dụng các đối tượng API mới từ AnhNT
+import { usersAPI, postsAPI } from '../services/userApi';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
 
 const ProfileScreen = () => {
-  // 1. Lấy ID từ URL và khởi tạo router để điều hướng
   const { id } = useLocalSearchParams();
   const userId = id ? Number(id) : 1; 
   const router = useRouter(); 
 
-  // State quản lý dữ liệu và phân trang
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   
-  // State quản lý trạng thái hiển thị
   const [loading, setLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Hàm tải dữ liệu ban đầu
+  // 1. Tải dữ liệu ban đầu
   const loadData = async (isRefreshing = false) => {
     if (!isRefreshing) setLoading(true);
     try {
-      const [profileData, postsResponse] = await Promise.all([
-        fetchUserProfile(userId),
-        fetchUserPosts(userId, null), // Tải trang đầu tiên
+      // Gọi qua các đối tượng API mới và truy cập dữ liệu qua .data
+      const [profileRes, postsRes] = await Promise.all([
+        usersAPI.getProfile(userId),
+        postsAPI.getUserPosts(userId, null),
       ]);
       
-      setProfile(profileData);
-      setPosts(postsResponse.posts || []);
-      setNextCursor(postsResponse.next_cursor || null);
-      setHasMore(postsResponse.has_more);
+      setProfile(profileRes.data);
+      
+      const postsData = postsRes.data;
+      setPosts(postsData.posts || []);
+      setNextCursor(postsData.next_cursor || null);
+      setHasMore(postsData.has_more);
     } catch (err) {
       console.error('Failed to load initial data:', err);
     } finally {
@@ -57,17 +58,18 @@ const ProfileScreen = () => {
     }
   };
 
-  // Hàm tải thêm khi cuộn xuống cuối danh sách
+  // 2. Logic Tải thêm (Infinite Scroll) dùng Cursor
   const handleLoadMore = async () => {
     if (isLoadingMore || !hasMore || !nextCursor) return;
 
     setIsLoadingMore(true);
     try {
-      const response = await fetchUserPosts(userId, nextCursor);
-      // Gộp bài mới vào danh sách hiện tại
-      setPosts(prevPosts => [...prevPosts, ...(response.posts || [])]);
-      setNextCursor(response.next_cursor || null);
-      setHasMore(response.has_more);
+      const response = await postsAPI.getUserPosts(userId, nextCursor);
+      const newData = response.data;
+      
+      setPosts(prevPosts => [...prevPosts, ...(newData.posts || [])]);
+      setNextCursor(newData.next_cursor || null);
+      setHasMore(newData.has_more);
     } catch (err) {
       console.error('Failed to load more posts:', err);
     } finally {
@@ -112,12 +114,11 @@ const ProfileScreen = () => {
         data={posts}
         keyExtractor={(item) => item.id.toString()}
         numColumns={3}
-        ListHeaderComponent={<ProfileHeader profile={profile} />}
+        ListHeaderComponent={<ProfileHeader profile={{...profile, id: userId}} />}
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.gridItem} 
             activeOpacity={0.8}
-            // CHỨC NĂNG MỚI: Nhấn để mở trang chi tiết bài viết
             onPress={() => router.push(`/post/${item.id}` as any)}
           >
             <Image
@@ -125,7 +126,6 @@ const ProfileScreen = () => {
               style={styles.gridImage}
               resizeMode="cover"
             />
-            {/* Badge hiển thị nếu bài viết có nhiều ảnh */}
             {item.media_count > 1 && (
               <View style={styles.multiMediaBadge}>
                 <View style={styles.multiMediaIcon} />
@@ -133,11 +133,9 @@ const ProfileScreen = () => {
             )}
           </TouchableOpacity>
         )}
-        // Phân trang Infinite Scroll
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
-        
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       />

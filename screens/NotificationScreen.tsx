@@ -3,10 +3,13 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, SectionList, StyleSheet, Text, View } from 'react-native';
 import { NotificationItem, NotificationItemData } from '../components/NotificationItem';
-// Đã xóa import NotificationContext
-import { apiService } from '../services/notificationApi'; 
+// Sử dụng notificationsAPI thay vì apiService cũ
+import { notificationsAPI } from '../services/notificationApi'; 
 import { AggregatedNotification, Notification } from '../types/notification';
 
+/**
+ * Định nghĩa Interface cho Section để tránh lỗi implicit 'any'
+ */
 interface NotificationSection {
   title: string;
   data: NotificationItemData[];
@@ -15,46 +18,39 @@ interface NotificationSection {
 const NotificationScreen = () => {
   const [sections, setSections] = useState<NotificationSection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Hàm tải danh sách thông báo
+  /**
+   * Tải danh sách thông báo từ API
+   */
   const loadNotifications = useCallback(async () => {
     try {
-      setError(null);
-      // Gọi API lấy thông báo qua apiService
-      const response = await apiService.fetchNotifications(20); 
+      const response = await notificationsAPI.fetchNotifications(20); 
       
-      const followSection: NotificationSection = {
-        title: 'Follows',
-        data: response.follows,
-      };
-      
-      const activitySection: NotificationSection = {
-        title: 'Activity',
-        data: response.aggregated,
-      };
-      
-      // Lọc bỏ các section trống
-      setSections([followSection, activitySection].filter(section => section.data.length > 0));
+      const newSections: NotificationSection[] = [
+        { title: 'Follows', data: response.follows || [] },
+        { title: 'Activity', data: response.aggregated || [] }
+      ].filter(section => section.data.length > 0);
+
+      setSections(newSections);
     } catch (err) {
-      setError('Failed to load notifications');
-      console.error(err);
+      console.error('Failed to load notifications', err);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Hàm đánh dấu tất cả là đã đọc
+  /**
+   * Đánh dấu tất cả thông báo là đã đọc khi vào màn hình
+   */
   const markAllAsRead = useCallback(async () => {
     try {
-      await apiService.markAllNotificationsRead(); //
+      await notificationsAPI.markAllNotificationsRead();
       
-      // Cập nhật trạng thái hiển thị tại chỗ
       setSections(prevSections =>
-        prevSections.map(section => ({
+        prevSections.map((section: NotificationSection) => ({
           ...section,
-          data: section.data.map(item => ({ ...item, is_read: true })),
+          data: section.data.map((item: NotificationItemData) => ({ ...item, is_read: true })),
         }))
       );
     } catch (err) {
@@ -62,20 +58,21 @@ const NotificationScreen = () => {
     }
   }, []);
 
-  // Xử lý khi nhấn vào một thông báo cụ thể
+  /**
+   * Xử lý nhấn vào thông báo: Đánh dấu đã đọc và điều hướng
+   */
   const handleNotificationPress = useCallback(async (item: NotificationItemData) => {
-    // 1. Đánh dấu đã đọc nếu tin nhắn chưa đọc
-    if ('id' in item && !item.is_read) {
+    // 1. Đánh dấu đã đọc cục bộ và gửi API
+    if (!item.is_read) {
       try {
-        await apiService.markNotificationsRead([item.id]); //
+        // Chắc chắn item có id thông qua ép kiểu hoặc đảm bảo trong types
+        await notificationsAPI.markNotificationsRead([item.id]); 
         
         setSections(prevSections =>
-          prevSections.map(section => ({
+          prevSections.map((section: NotificationSection) => ({
             ...section,
-            data: section.data.map(notification =>
-              'id' in notification && notification.id === item.id
-                ? { ...notification, is_read: true }
-                : notification
+            data: section.data.map((notification: NotificationItemData) =>
+              notification.id === item.id ? { ...notification, is_read: true } : notification
             ),
           }))
         );
@@ -84,28 +81,24 @@ const NotificationScreen = () => {
       }
     }
 
-    // 2. Điều hướng dựa trên loại thông báo
-    if ('actor' in item) {
-      // Thông báo Follow -> Dẫn đến Profile người đó
-      const notification = item as Notification;
-      router.push(`/profile/${notification.actor_id}` as any);
+    // 2. Điều hướng dựa trên loại thông báo (Type Guard)
+    if (item.type === 'follow') {
+      const followItem = item as Notification;
+      router.push(`/profile/${followItem.actor_id}` as any);
     } else {
-      // Thông báo Like/Comment -> Dẫn đến chi tiết bài viết
-      const aggregated = item as AggregatedNotification;
-      if (aggregated.post_id) {
-        router.push(`/post/${aggregated.post_id}` as any);
+      const activityItem = item as AggregatedNotification;
+      if (activityItem.post_id) {
+        router.push(`/post/${activityItem.post_id}` as any);
       }
     }
   }, [router]);
 
-  // Tự động làm mới danh sách mỗi 30 giây (Polling)
   useEffect(() => {
     loadNotifications();
-    const interval = setInterval(loadNotifications, 30000);
+    const interval = setInterval(loadNotifications, 30000); // Tự động làm mới mỗi 30s
     return () => clearInterval(interval);
   }, [loadNotifications]);
 
-  // Đánh dấu tất cả đã đọc khi người dùng vào màn hình này
   useFocusEffect(
     useCallback(() => {
       markAllAsRead();
@@ -115,9 +108,7 @@ const NotificationScreen = () => {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#000" />
-        </View>
+        <View style={styles.center}><ActivityIndicator size="large" color="#000" /></View>
       </SafeAreaView>
     );
   }
@@ -125,43 +116,30 @@ const NotificationScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
-      
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Notifications</Text>
-      </View>
+      <View style={styles.headerContainer}><Text style={styles.headerTitle}>Notifications</Text></View>
 
       <SectionList
         sections={sections}
-        keyExtractor={(item) => 'id' in item ? item.id.toString() : `${item.post_id}-${item.type}`}
+        // keyExtractor an toàn: Fallback về index nếu id undefined
+        keyExtractor={(item, index) => item.id?.toString() || index.toString()}
         stickySectionHeadersEnabled={false}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <NotificationItem item={item} onPress={() => handleNotificationPress(item)} />
         )}
         renderSectionHeader={({ section: { title } }) => (
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{title}</Text>
-          </View>
+          <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>{title}</Text></View>
         )}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.center}>
-            <Text style={styles.emptyText}>No notifications yet</Text>
-          </View>
-        }
+        ListEmptyComponent={<View style={styles.center}><Text style={styles.emptyText}>No notifications yet</Text></View>}
       />
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
-  headerContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6', 
-  },
+  headerContainer: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#000' },
   sectionHeader: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 10, marginTop: 10 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#000' },

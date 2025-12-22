@@ -1,6 +1,8 @@
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-// SỬA TẠI ĐÂY: Import apiService thay vì hàm rời
-import { apiService } from '../services/notificationApi';
+// SỬA TẠI ĐÂY: Import đúng tên đối tượng notificationsAPI
+import { notificationsAPI } from '../services/notificationApi';
+// Import hàm getAccessToken để kiểm tra trạng thái đăng nhập
+import { getAccessToken } from '../services/userApi';
 
 interface NotificationContextType {
   unreadCount: number;
@@ -21,19 +23,31 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const refreshUnreadCount = async () => {
+    // 1. Kiểm tra xem người dùng đã đăng nhập chưa
+    const token = getAccessToken();
+    
+    // Nếu chưa có token trong bộ nhớ, thoát ra và không gọi API
+    // Việc này ngăn chặn lỗi "No refresh token" hiện lên console
+    if (!token) {
+      return; 
+    }
+
     try {
-      // SỬA TẠI ĐÂY: Gọi hàm thông qua đối tượng apiService
-      const response = await apiService.fetchUnreadCount();
+      // 2. Gọi hàm thông qua đối tượng notificationsAPI mới
+      const response = await notificationsAPI.fetchUnreadCount();
+      
       // Đảm bảo truy cập đúng thuộc tính unread_count từ backend
-      setUnreadCount(response.unread_count);
+      setUnreadCount(response.unread_count || 0);
     } catch (err) {
-      // Lỗi bạn nhìn thấy trong console xuất phát từ dòng này khi fetchUnreadCount bị undefined
+      // Chỉ log lỗi nếu thực sự có lỗi kết nối hoặc server
       console.error('Failed to fetch unread count', err);
     }
   };
 
   useEffect(() => {
+    // Lần đầu mở app, thực hiện lấy số lượng thông báo
     refreshUnreadCount();
+    
     // Tự động cập nhật số lượng thông báo chưa đọc mỗi 30 giây
     const interval = setInterval(refreshUnreadCount, 30000);
     return () => clearInterval(interval);

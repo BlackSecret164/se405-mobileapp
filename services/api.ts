@@ -8,7 +8,7 @@ import { Platform } from 'react-native'
 // - iOS simulator / Expo Go: use localhost
 // - Physical device (your phone): set LOCAL_IP to your machine IP from `ipconfig` (e.g. 172.20.10.8)
 // If LOCAL_IP is empty, the code will auto-select the default for emulator/simulator.
-const LOCAL_IP = '172.20.10.8' // <- SET THIS TO YOUR MACHINE IP WHEN TESTING ON A PHYSICAL DEVICE, or set to '' to auto-detect
+const LOCAL_IP = '192.168.0.101' // <- SET THIS TO YOUR MACHINE IP WHEN TESTING ON A PHYSICAL DEVICE, or set to '' to auto-detect
 
 const HOST = LOCAL_IP || (Platform.OS === 'android' ? '10.0.2.2' : 'localhost')
 const BASE_URL = `http://${HOST}:8080`

@@ -1,8 +1,10 @@
-// app/follow-list/[id].tsx
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import React, { useEffect, useState, useCallback } from 'react';
-import { FlatList, View, Text, Image, TouchableOpacity, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
-import { fetchFollowers, fetchFollowing } from '../../services/userApi';
+import React, { useEffect, useState } from 'react';
+import { 
+  FlatList, View, Text, Image, TouchableOpacity, 
+  ActivityIndicator, StyleSheet, RefreshControl 
+} from 'react-native';
+import { usersAPI } from '../../services/userApi';
 
 const FollowListScreen = () => {
   const { id, type } = useLocalSearchParams();
@@ -22,15 +24,17 @@ const FollowListScreen = () => {
 
     try {
       const userId = Number(id);
-      const data = type === 'followers' 
-        ? await fetchFollowers(userId, currentCursor) 
-        : await fetchFollowing(userId, currentCursor);
+      // Gọi qua usersAPI và lấy dữ liệu từ res.data
+      const res = type === 'followers' 
+        ? await usersAPI.getFollowers(userId, currentCursor) 
+        : await usersAPI.getFollowing(userId, currentCursor);
       
+      const data = res.data;
       setUsers(prev => currentCursor ? [...prev, ...data.users] : data.users);
-      setCursor(data.cursor);
+      setCursor(data.cursor); // Cursor dạng RFC3339 timestamp
       setHasMore(data.has_more);
     } catch (err) {
-      console.error(err);
+      console.error("Lỗi tải danh sách:", err);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -41,12 +45,15 @@ const FollowListScreen = () => {
   useEffect(() => { loadData(); }, [id, type]);
 
   const onEndReached = () => {
+    // Chỉ load thêm nếu has_more là true và có cursor
     if (hasMore && !loadingMore && cursor) {
       loadData(cursor);
     }
   };
 
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#000" /></View>;
+  if (loading && !refreshing) {
+    return <View style={styles.center}><ActivityIndicator size="large" color="#000" /></View>;
+  }
 
   return (
     <View style={styles.container}>
@@ -56,21 +63,29 @@ const FollowListScreen = () => {
         keyExtractor={(item) => item.id.toString()}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(null, true)} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => loadData(null, true)} />
+        }
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.userCard}
             onPress={() => router.push(`/profile/${item.id}` as any)}
           >
             <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.displayName}>{item.display_name}</Text>
               <Text style={styles.username}>@{item.username}</Text>
             </View>
+            {/* Hiển thị nút Follow tương ứng nếu cần */}
+            {item.is_following ? (
+               <View style={styles.followingBadge}><Text style={styles.followingText}>Following</Text></View>
+            ) : null}
           </TouchableOpacity>
         )}
         ListFooterComponent={loadingMore ? <ActivityIndicator style={{ padding: 20 }} /> : null}
-        ListEmptyComponent={<Text style={styles.emptyText}>No users found</Text>}
+        ListEmptyComponent={
+          <View style={styles.center}><Text style={styles.emptyText}>No users found</Text></View>
+        }
       />
     </View>
   );
@@ -78,12 +93,14 @@ const FollowListScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
   userCard: { flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 0.5, borderBottomColor: '#eee' },
-  avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 15 },
-  displayName: { fontWeight: 'bold', fontSize: 16 },
-  username: { color: '#666' },
-  emptyText: { textAlign: 'center', marginTop: 50, color: '#999' }
+  avatar: { width: 54, height: 54, borderRadius: 27, marginRight: 15 },
+  displayName: { fontWeight: '600', fontSize: 15 },
+  username: { color: '#666', fontSize: 14 },
+  emptyText: { color: '#999', fontSize: 15 },
+  followingBadge: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#f3f4f6', borderRadius: 6 },
+  followingText: { fontSize: 13, fontWeight: '600' }
 });
 
 export default FollowListScreen;
