@@ -4,6 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import * as Notifications from 'expo-notifications';
 import 'react-native-reanimated';
+import { AuthProvider } from '@/contexts/AuthContext'
+import { Stack } from 'expo-router'
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { NotificationProvider } from '../contexts/NotificationContext';
@@ -17,6 +19,7 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
+  
 
   useEffect(() => {
     // 1. Khởi tạo quyền, lấy Device Token và gửi lên Server
@@ -78,4 +81,11 @@ export default function RootLayout() {
       </NotificationProvider>
     </ThemeProvider>
   );
+
+    return (
+    <AuthProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </AuthProvider>
+  )
 }
+
