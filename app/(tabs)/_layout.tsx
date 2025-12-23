@@ -1,13 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import React from "react";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { Colors } from "@/constants/theme";
+import { useNotificationContext } from "@/contexts/NotificationContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { unreadCount } = useNotificationContext();
 
   return (
     <Tabs
@@ -55,6 +56,7 @@ export default function TabLayout() {
               color={color}
             />
           ),
+          tabBarBadge: unreadCount > 0 ? unreadCount.toString() : undefined,
         }}
       />
       <Tabs.Screen

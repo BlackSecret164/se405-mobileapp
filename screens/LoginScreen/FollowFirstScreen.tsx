@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface UserSummary {
   id: number;
@@ -201,11 +202,11 @@ export default function FollowFirstScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Follow ít nhất 2 người</Text>
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Follow at least 2 people</Text>
 
       <TextInput
-        placeholder="Tìm người (username)"
+        placeholder="Search users by username"
         style={styles.search}
         value={search}
         onChangeText={setSearch}
@@ -222,9 +223,9 @@ export default function FollowFirstScreen() {
             <Text style={{ textAlign: "center", marginTop: 24, color: "#666" }}>
               {results
                 ? searching
-                  ? "Đang tìm..."
-                  : "Không có kết quả"
-                : "Bạn chưa follow ai"}
+                  ? "Searching..."
+                  : "No results found"
+                : "You haven't followed anyone yet"}
             </Text>
           )}
         />
@@ -238,10 +239,10 @@ export default function FollowFirstScreen() {
         {confirming ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={{ color: "#fff" }}>Xác nhận ({totalFollowing}/2)</Text>
+          <Text style={{ color: "#fff" }}>Confirm ({totalFollowing}/2)</Text>
         )}
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -273,7 +274,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#ccc",
     padding: 14,
     borderRadius: 8,
-    marginTop: 12,
+    marginTop: 16,
+    marginBottom: 8,
     alignItems: "center",
   },
   confirmActive: { backgroundColor: "#3797ef" },

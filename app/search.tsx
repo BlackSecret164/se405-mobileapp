@@ -67,11 +67,13 @@ export default function SearchScreen() {
     (user: UserSummary) => {
       // Add to search history
       addToHistory(user);
-      // Navigate to user profile (TODO: implement profile page)
-      // router.push(`/user/${user.id}`);
-      console.log("Navigate to user profile:", user.id);
+      // Navigate to user profile
+      router.push({
+        pathname: "/profile/[id]" as any,
+        params: { id: user.id.toString() },
+      });
     },
-    [addToHistory]
+    [addToHistory, router]
   );
 
   // Handle user press from history
@@ -79,11 +81,13 @@ export default function SearchScreen() {
     (user: SearchHistoryUser) => {
       // Add to history (moves to top)
       addToHistory(user);
-      // Navigate to user profile (TODO: implement profile page)
-      // router.push(`/user/${user.id}`);
-      console.log("Navigate to user profile:", user.id);
+      // Navigate to user profile
+      router.push({
+        pathname: "/profile/[id]" as any,
+        params: { id: user.id.toString() },
+      });
     },
-    [addToHistory]
+    [addToHistory, router]
   );
 
   // Handle remove from history

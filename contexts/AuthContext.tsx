@@ -1,4 +1,6 @@
 import { authAPI, getAccessToken, initAuth } from "@/services/api";
+import { registerPushToken } from "@/services/notificationApi";
+import { router } from "expo-router";
 import {
   createContext,
   ReactNode,
@@ -49,6 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (token) {
           const res = await authAPI.me();
           setCurrentUser(res.data);
+
+          // Register push token after session is restored (user is authenticated)
+          await registerPushToken();
         }
       } catch (error) {
         // No valid session, user needs to login
@@ -80,6 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setCurrentUser(null);
       console.log("[AuthContext] User set to null");
+      // Navigate to login screen
+      router.replace("/login");
     }
   };
 

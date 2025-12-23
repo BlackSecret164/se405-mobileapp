@@ -1,9 +1,9 @@
 import { CommentSheet, CommentSheetRef } from "@/components/comments";
-import { FeedList } from "@/components/feed";
+import { FeedList, FeedListRef } from "@/components/feed";
 import { Header } from "@/components/ui/header";
 import { useFeed } from "@/hooks/use-feed";
 import { useFocusEffect } from "expo-router";
-import React, { useCallback, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -22,6 +22,7 @@ export default function HomeScreen() {
   } = useFeed();
 
   const commentSheetRef = useRef<CommentSheetRef>(null);
+  const feedListRef = useRef<FeedListRef>(null);
 
   // Auto refresh feed when tab is focused (e.g., after creating a new post)
   useFocusEffect(
@@ -57,6 +58,12 @@ export default function HomeScreen() {
     },
     [updateCommentCount]
   );
+
+  // Handle logo press: scroll to top and refresh
+  const handleLogoPress = useCallback(async () => {
+    feedListRef.current?.scrollToTop();
+    await refresh();
+  }, [refresh]);
 
   // Show loading state on initial load
   if (isLoading) {
@@ -95,10 +102,11 @@ export default function HomeScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-zinc-900" edges={["top"]}>
       {/* Sticky Header */}
-      <Header />
+      <Header onLogoPress={handleLogoPress} />
 
       {/* Feed */}
       <FeedList
+        ref={feedListRef}
         posts={posts}
         onRefresh={handleRefresh}
         onLoadMore={handleLoadMore}

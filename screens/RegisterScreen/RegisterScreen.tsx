@@ -36,11 +36,11 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!username || !password || !confirmPassword) {
-      return Alert.alert("Lỗi", "Thiếu thông tin");
+      return Alert.alert("Error", "Missing required information");
     }
 
     if (password !== confirmPassword) {
-      return Alert.alert("Lỗi", "Mật khẩu xác nhận không khớp");
+      return Alert.alert("Error", "Passwords do not match");
     }
 
     const formData = new FormData();
@@ -61,10 +61,10 @@ export default function RegisterScreen() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      Alert.alert("Thành công", "Đăng ký thành công");
-      router.replace("/");
+      Alert.alert("Success", "Registration successful");
+      router.replace("/login");
     } catch (err: any) {
-      Alert.alert("Lỗi", err.response?.data?.error?.message);
+      Alert.alert("Error", err.response?.data?.error?.message);
     }
   };
 
@@ -117,7 +117,7 @@ export default function RegisterScreen() {
 
         <TouchableOpacity
           style={styles.loginRow}
-          onPress={() => router.replace("/")}
+          onPress={() => router.replace("/login")}
         >
           <Text style={styles.loginText}>Do you already have an account? </Text>
           <Text style={styles.loginLink}>Log in.</Text>

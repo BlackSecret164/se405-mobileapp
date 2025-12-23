@@ -6,14 +6,14 @@ export default function WelcomeScreen() {
   useEffect(() => {
     const timer = setTimeout(() => {
       router.replace("/follow-first");
-    }, 6000);
+    }, 3618);
 
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>🎉 Chào mừng bạn đến với Instagram!</Text>
+      <Text style={styles.text}>🎉 Welcome to Iamstagram!</Text>
     </View>
   );
 }

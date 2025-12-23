@@ -6,15 +6,20 @@ import { Pressable, Text, View } from "react-native";
 interface HeaderProps {
   showBackButton?: boolean;
   onBackPress?: () => void;
+  onLogoPress?: () => void;
 }
 
 /**
  * Instagram-style header component
- * - Logo "Instagram" centered
+ * - Logo "Instagram" centered (tappable to scroll to top and refresh)
  * - Search icon on the right (navigates to /search)
  * - Optional back button on the left
  */
-export function Header({ showBackButton = false, onBackPress }: HeaderProps) {
+export function Header({
+  showBackButton = false,
+  onBackPress,
+  onLogoPress,
+}: HeaderProps) {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const iconColor = colorScheme === "dark" ? "#ECEDEE" : "#11181C";
@@ -42,13 +47,19 @@ export function Header({ showBackButton = false, onBackPress }: HeaderProps) {
         )}
       </View>
 
-      {/* Center: Instagram logo */}
-      <Text
-        className="text-2xl text-black dark:text-white"
-        style={{ fontFamily: "System", fontStyle: "italic", fontWeight: "600" }}
-      >
-        Iamstagram
-      </Text>
+      {/* Center: Instagram logo (tappable) */}
+      <Pressable onPress={onLogoPress} hitSlop={8}>
+        <Text
+          className="text-2xl text-black dark:text-white"
+          style={{
+            fontFamily: "System",
+            fontStyle: "italic",
+            fontWeight: "600",
+          }}
+        >
+          Iamstagram
+        </Text>
+      </Pressable>
 
       {/* Right: Search button */}
       <View className="w-10 items-end">

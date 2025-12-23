@@ -256,6 +256,17 @@ export const usersAPI = {
     return api.get(`/users/search?${params.toString()}`);
   },
 
+  // Get user profile
+  getProfile: (userId: number) => api.get(`/users/${userId}`),
+
+  // Get followers list for a user
+  getFollowers: (userId: number, cursor?: string | null, limit = 20) => {
+    const params = new URLSearchParams();
+    if (cursor) params.append("cursor", cursor);
+    params.append("limit", String(limit));
+    return api.get(`/users/${userId}/followers?${params.toString()}`);
+  },
+
   // Get following list for a user
   getFollowing: (userId: number, cursor?: string | null, limit = 20) => {
     const params = new URLSearchParams();
@@ -269,6 +280,19 @@ export const usersAPI = {
 
   // Unfollow a user
   unfollow: (userId: number) => api.delete(`/users/${userId}/follow`),
+};
+
+export const postsAPI = {
+  // Get posts for a user
+  getUserPosts: (userId: number, cursor?: string | null, limit = 12) => {
+    const params = new URLSearchParams();
+    if (cursor) params.append("cursor", cursor);
+    params.append("limit", String(limit));
+    return api.get(`/users/${userId}/posts?${params.toString()}`);
+  },
+
+  // Get post detail
+  getPostDetail: (postId: number) => api.get(`/posts/${postId}`),
 };
 
 export default api;

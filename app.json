@@ -42,9 +42,16 @@
       "expo-video",
       "expo-secure-store"
     ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1f5ba781-74f6-4cb6-a03e-dccf8780b9b4"
+      }
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "owner": "nhgiabao160304"
   }
 }

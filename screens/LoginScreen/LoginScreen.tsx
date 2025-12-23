@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import api, { setAccessToken } from "@/services/api";
+import { registerPushToken } from "@/services/notificationApi";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
@@ -22,7 +23,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!username || !password) {
-      return Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin");
+      return Alert.alert("Error", "Please enter all required fields");
     }
 
     try {
@@ -40,6 +41,9 @@ export default function LoginScreen() {
       // Set user in auth context
       setUser(user);
 
+      // Register push token with backend (now that user is authenticated)
+      await registerPushToken();
+
       if (user.is_new_user) {
         router.replace("/welcome");
       } else {
@@ -49,8 +53,10 @@ export default function LoginScreen() {
       console.log("[Login Error]", err);
       console.log("[Login Error Response]", err.response?.data);
       const errorMessage =
-        err.response?.data?.error?.message || err.message || "Đã xảy ra lỗi";
-      Alert.alert("Đăng nhập thất bại", errorMessage);
+        err.response?.data?.error?.message ||
+        err.message ||
+        "An error occurred";
+      Alert.alert("Login Failed", errorMessage);
     } finally {
       setLoading(false);
     }
