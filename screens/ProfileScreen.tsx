@@ -141,7 +141,13 @@ const ProfileScreen = () => {
       <FlatList
         data={
           isOwnProfile && newPosts.length > 0
-            ? [...newPosts, ...posts] // Prepend new posts for own profile
+            ? [
+                ...newPosts,
+                // Filter out posts that already exist in newPosts to avoid duplicates
+                ...posts.filter(
+                  (post) => !newPosts.some((np) => np.id === post.id)
+                ),
+              ]
             : posts
         }
         keyExtractor={(item) => item.id.toString()}
