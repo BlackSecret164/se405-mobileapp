@@ -1,50 +1,73 @@
-# Welcome to your Expo app 👋
+# SE405 Mobile App �
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Ứng dụng di động được xây dựng bằng [Expo](https://expo.dev) + React Native.
 
-## Get started
+## Yêu cầu cài đặt
 
-1. Install dependencies
+Trước khi bắt đầu, hãy đảm bảo máy bạn đã cài đặt:
 
-   ```bash
-   npm install
-   ```
+- **Node.js** phiên bản 18 trở lên - [Tải tại đây](https://nodejs.org/)
+- **npm** (đi kèm với Node.js)
+- **Git** - [Tải tại đây](https://git-scm.com/)
+- **Expo Go** trên điện thoại - Tải từ App Store (iOS) hoặc Google Play (Android)
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## Hướng dẫn chạy dự án
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+### Bước 1: Clone dự án
 
 ```bash
-npm run reset-project
+git clone <đường-dẫn-repo>
+cd se405-mobileapp
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Bước 2: Cài đặt thư viện
 
-## Learn more
+```bash
+npm install
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+### Bước 3: Chạy ứng dụng
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npx expo start
+```
 
-## Join the community
+Sau khi chạy lệnh, bạn sẽ thấy một mã QR code trên terminal hãy dùng camera điện thoại quét mã QR để mở app.
 
-Join our community of developers creating universal apps.
+> **Lưu ý:** Điện thoại và máy tính cần kết nối cùng một mạng WiFi.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+---
+
+## Hướng dẫn Setup EAS (Expo Application Services) để sử tính năng push notification
+
+### Bước 1: Tạo tài khoản Expo
+
+1. Truy cập [expo.dev](https://expo.dev)
+2. Nhấn **Sign Up** để đăng ký tài khoản mới
+3. Xác nhận email
+
+### Bước 2: Cài đặt EAS CLI
+
+Mở terminal và chạy:
+
+```bash
+npm install -g eas-cli
+```
+
+### Bước 3: Đăng nhập vào EAS
+
+```bash
+eas login
+```
+
+Nhập email và mật khẩu tài khoản Expo của bạn.
+
+### Bước 4: Khởi tạo dự án EAS (nếu chưa có)
+
+```bash
+eas init
+```
+
+> Lệnh này sẽ tạo/cập nhật `projectId` trong file `app.json`.
