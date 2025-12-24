@@ -1,5 +1,7 @@
 import { CommentSheet, CommentSheetRef } from "@/components/comments";
+import { ImageCarousel } from "@/components/feed/image-carousel";
 import { likePost, unlikePost } from "@/services/feed-service";
+import { Media } from "@/types/feed";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -123,27 +125,25 @@ export default function PostDetailScreen() {
           </Text>
         </Pressable>
 
-        {/* Media Carousel */}
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-        >
-          {post.media && post.media.length > 0 ? (
-            post.media.map((m: any) => (
-              <Image
-                key={m.id}
-                source={{ uri: m.media_url }}
-                style={styles.mainImage}
-              />
-            ))
-          ) : (
-            <Image
-              source={{ uri: post.thumbnail_url }}
-              style={styles.mainImage}
-            />
-          )}
-        </ScrollView>
+        {/* Media Carousel with Indicators */}
+        {post.media && post.media.length > 0 ? (
+          <ImageCarousel
+            media={post.media.map(
+              (m: any) =>
+                ({
+                  id: m.id,
+                  media_url: m.media_url,
+                  media_type: m.media_type || "image",
+                  position: m.position || 0,
+                } as Media)
+            )}
+          />
+        ) : post.thumbnail_url ? (
+          <Image
+            source={{ uri: post.thumbnail_url }}
+            style={styles.mainImage}
+          />
+        ) : null}
 
         {/* Actions Row */}
         <View style={styles.content}>

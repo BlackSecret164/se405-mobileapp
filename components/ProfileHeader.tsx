@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useFollowContext } from "../contexts/FollowContext";
 import { usersAPI } from "../services/api";
 
 interface ProfileHeaderProps {
@@ -32,6 +33,7 @@ export const ProfileHeader = ({
   isOwnProfile = false,
 }: ProfileHeaderProps) => {
   const router = useRouter();
+  const { incrementFollowing, decrementFollowing } = useFollowContext();
   const [isFollowing, setIsFollowing] = useState(profile.is_following ?? false);
   const [followerCount, setFollowerCount] = useState(profile.follower_count);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,10 +56,14 @@ export const ProfileHeader = ({
         await usersAPI.unfollow(profile.id);
         setIsFollowing(false);
         setFollowerCount((prev) => prev - 1);
+        // Thông báo cho context để cập nhật following count của current user
+        decrementFollowing();
       } else {
         await usersAPI.follow(profile.id);
         setIsFollowing(true);
         setFollowerCount((prev) => prev + 1);
+        // Thông báo cho context để cập nhật following count của current user
+        incrementFollowing();
       }
     } catch (error) {
       console.error("Follow/Unfollow error:", error);

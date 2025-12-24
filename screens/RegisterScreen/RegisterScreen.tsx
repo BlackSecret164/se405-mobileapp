@@ -23,6 +23,10 @@ export default function RegisterScreen() {
     null
   );
 
+  // Check if form is valid for button styling (required fields: username, password, confirmPassword)
+  const isFormValid =
+    username.trim() !== "" && password !== "" && confirmPassword !== "";
+
   const pickAvatar = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -111,7 +115,10 @@ export default function RegisterScreen() {
           onChangeText={setConfirmPassword}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+        <TouchableOpacity
+          style={[styles.button, isFormValid && styles.buttonActive]}
+          onPress={handleRegister}
+        >
           <Text style={styles.buttonText}>Sign up</Text>
         </TouchableOpacity>
 
@@ -157,6 +164,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#9ad0f5",
     padding: 14,
     borderRadius: 8,
+  },
+  buttonActive: {
+    backgroundColor: "#3797ef",
   },
   buttonText: { textAlign: "center", color: "#fff", fontWeight: "600" },
   loginRow: { flexDirection: "row", justifyContent: "center", marginTop: 12 },

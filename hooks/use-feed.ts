@@ -4,6 +4,7 @@
  */
 
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfileSync } from "@/contexts/FollowContext";
 import {
   deletePost,
   getFeed,
@@ -30,6 +31,7 @@ interface UseFeedReturn {
 
 export function useFeed(): UseFeedReturn {
   const { isLoggedIn } = useAuth();
+  const { removePost } = useProfileSync();
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -149,16 +151,21 @@ export function useFeed(): UseFeedReturn {
   /**
    * Handle delete post
    */
-  const handleDeletePost = useCallback(async (postId: number) => {
-    try {
-      await deletePost(postId);
-      // Remove post from local state
-      setPosts((prev) => prev.filter((post) => post.id !== postId));
-    } catch (err) {
-      console.error("[useFeed] Delete post error:", err);
-      Alert.alert("Error", "Failed to delete post. Please try again.");
-    }
-  }, []);
+  const handleDeletePost = useCallback(
+    async (postId: number) => {
+      try {
+        await deletePost(postId);
+        // Remove post from local state
+        setPosts((prev) => prev.filter((post) => post.id !== postId));
+        // Sync with ProfileScreen - decrement post count and remove from newPosts if exists
+        removePost(postId);
+      } catch (err) {
+        console.error("[useFeed] Delete post error:", err);
+        Alert.alert("Error", "Failed to delete post. Please try again.");
+      }
+    },
+    [removePost]
+  );
 
   /**
    * Update comment count for a post

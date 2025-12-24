@@ -85,12 +85,6 @@ export function PostCard({
     );
   };
 
-  const handleEditPress = () => {
-    setMenuVisible(false);
-    // TODO: Implement edit functionality later
-    Alert.alert("Coming Soon", "Edit post feature will be available soon.");
-  };
-
   return (
     <View className="bg-white dark:bg-zinc-900 mb-2">
       {/* Header - Avatar, Username, and Menu */}
@@ -176,17 +170,6 @@ export function PostCard({
             <View className="items-center py-3">
               <View className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
             </View>
-
-            {/* Edit option */}
-            <Pressable
-              onPress={handleEditPress}
-              className="flex-row items-center px-5 py-4"
-            >
-              <Ionicons name="pencil-outline" size={24} color={iconColor} />
-              <Text className="ml-4 text-base text-black dark:text-white">
-                Edit post
-              </Text>
-            </Pressable>
 
             {/* Delete option */}
             <Pressable

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +20,7 @@ import {
   MediaPickerButtons,
   MediaPreviewList,
 } from "@/components/add-post";
+import { useProfileSync } from "@/contexts/FollowContext";
 import {
   createPost,
   getContentTypeFromUri,
@@ -32,6 +33,7 @@ const MAX_MEDIA_COUNT = 10;
 
 export default function AddPostScreen() {
   const router = useRouter();
+  const { addNewPost } = useProfileSync();
   const [media, setMedia] = useState<LocalMedia[]>([]);
   const [caption, setCaption] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,12 +89,19 @@ export default function AddPostScreen() {
 
       // Step 3: Create post with public URLs
       const mediaUrls = presignResponse.items.map((item) => item.public_url);
-      await createPost(caption || undefined, mediaUrls);
+      const newPost = await createPost(caption || undefined, mediaUrls);
 
-      // Success - navigate to home
+      // Step 4: Dispatch to ProfileSync to update MyProfile immediately
+      addNewPost({
+        id: newPost.id,
+        thumbnail_url: newPost.media?.[0]?.media_url || mediaUrls[0],
+        media_count: newPost.media?.length || mediaUrls.length,
+      });
+
+      // Success - navigate to home and scroll to top
       setMedia([]);
       setCaption("");
-      router.replace("/(tabs)");
+      router.replace("/(tabs)?scrollToTop=true");
     } catch (error) {
       console.error("Failed to create post:", error);
       Alert.alert(

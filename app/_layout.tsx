@@ -1,6 +1,7 @@
 import "../global.css";
 
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ProfileSyncProvider } from "@/contexts/FollowContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import {
@@ -70,49 +71,67 @@ export default function RootLayout() {
           <ThemeProvider
             value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
           >
-            <NotificationProvider>
-              <Stack screenOptions={{ headerShown: false }}>
-                {/* Root index - handles initial routing */}
-                <Stack.Screen name="index" />
+            <ProfileSyncProvider>
+              <NotificationProvider>
+                <Stack screenOptions={{ headerShown: false }}>
+                  {/* Root index - handles initial routing */}
+                  <Stack.Screen name="index" />
 
-                {/* Auth screens */}
-                <Stack.Screen name="login" />
-                <Stack.Screen name="register" />
-                <Stack.Screen name="welcome" />
-                <Stack.Screen name="follow-first" />
+                  {/* Auth screens */}
+                  <Stack.Screen name="login" />
+                  <Stack.Screen name="register" />
+                  <Stack.Screen name="welcome" />
+                  <Stack.Screen name="follow-first" />
 
-                {/* Main tabs */}
-                <Stack.Screen name="(tabs)" />
+                  {/* Main tabs */}
+                  <Stack.Screen name="(tabs)" />
 
-                {/* Dynamic routes for Profile/Post/Follow List */}
-                <Stack.Screen
-                  name="profile/[id]"
-                  options={{ headerShown: true, title: "Profile" }}
-                />
-                <Stack.Screen
-                  name="post/[id]"
-                  options={{ headerShown: true, title: "Post" }}
-                />
-                <Stack.Screen
-                  name="follow-list/[id]"
-                  options={{ headerShown: true, title: "Follow List" }}
-                />
+                  {/* Dynamic routes for Profile/Post/Follow List */}
+                  <Stack.Screen
+                    name="profile/[id]"
+                    options={{
+                      headerShown: true,
+                      title: "Profile",
+                      headerBackTitle: "Back",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="post/[id]"
+                    options={{
+                      headerShown: true,
+                      title: "Post",
+                      headerBackTitle: "Back",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="follow-list/[id]"
+                    options={{
+                      headerShown: true,
+                      title: "Follow List",
+                      headerBackTitle: "Back",
+                    }}
+                  />
 
-                {/* Modal and edit screens */}
-                <Stack.Screen
-                  name="modal"
-                  options={{ presentation: "modal" }}
-                />
-                <Stack.Screen
-                  name="edit-profile"
-                  options={{ headerShown: true, title: "Edit Profile" }}
-                />
+                  {/* Modal and edit screens */}
+                  <Stack.Screen
+                    name="modal"
+                    options={{ presentation: "modal" }}
+                  />
+                  <Stack.Screen
+                    name="edit-profile"
+                    options={{
+                      headerShown: true,
+                      title: "Edit Profile",
+                      headerBackTitle: "Back",
+                    }}
+                  />
 
-                {/* Search screen */}
-                <Stack.Screen name="search" />
-              </Stack>
-              <StatusBar style="auto" />
-            </NotificationProvider>
+                  {/* Search screen */}
+                  <Stack.Screen name="search" />
+                </Stack>
+                <StatusBar style="auto" />
+              </NotificationProvider>
+            </ProfileSyncProvider>
           </ThemeProvider>
         </AuthProvider>
       </BottomSheetModalProvider>

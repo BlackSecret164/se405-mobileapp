@@ -2,8 +2,8 @@ import { CommentSheet, CommentSheetRef } from "@/components/comments";
 import { FeedList, FeedListRef } from "@/components/feed";
 import { Header } from "@/components/ui/header";
 import { useFeed } from "@/hooks/use-feed";
-import { useFocusEffect } from "expo-router";
-import { useCallback, useRef } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useRef } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -24,6 +24,9 @@ export default function HomeScreen() {
   const commentSheetRef = useRef<CommentSheetRef>(null);
   const feedListRef = useRef<FeedListRef>(null);
 
+  const router = useRouter();
+  const { scrollToTop } = useLocalSearchParams<{ scrollToTop?: string }>();
+
   // Auto refresh feed when tab is focused (e.g., after creating a new post)
   useFocusEffect(
     useCallback(() => {
@@ -33,6 +36,15 @@ export default function HomeScreen() {
       }
     }, [posts.length > 0, refresh])
   );
+
+  // Scroll to top when returning from add-post with scrollToTop param
+  useEffect(() => {
+    if (scrollToTop === "true") {
+      feedListRef.current?.scrollToTop();
+      // Clear the param to prevent scrolling on subsequent focus events
+      router.setParams({ scrollToTop: undefined });
+    }
+  }, [scrollToTop, router]);
 
   const handleRefresh = useCallback(async () => {
     await refresh();

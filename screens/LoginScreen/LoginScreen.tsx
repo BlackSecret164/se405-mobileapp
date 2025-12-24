@@ -21,6 +21,9 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const { setUser } = useAuth();
 
+  // Check if form is valid for button styling
+  const isFormValid = username.trim() !== "" && password !== "";
+
   const handleLogin = async () => {
     if (!username || !password) {
       return Alert.alert("Error", "Please enter all required fields");
@@ -65,7 +68,7 @@ export default function LoginScreen() {
   return (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
       <View style={styles.container}>
-        <Text style={styles.logo}>Instagram</Text>
+        <Text style={styles.logo}>Iamstagram</Text>
 
         <TextInput
           placeholder="Username"
@@ -82,7 +85,10 @@ export default function LoginScreen() {
           onChangeText={setPassword}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <TouchableOpacity
+          style={[styles.button, isFormValid && styles.buttonActive]}
+          onPress={handleLogin}
+        >
           <Text style={styles.buttonText}>
             {loading ? "Loading..." : "Log in"}
           </Text>
@@ -111,6 +117,9 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     marginTop: 8,
+  },
+  buttonActive: {
+    backgroundColor: "#3797ef",
   },
   buttonText: { textAlign: "center", color: "#fff", fontWeight: "600" },
   link: { textAlign: "center", marginTop: 24, color: "#3797ef" },

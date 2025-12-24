@@ -59,7 +59,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     refreshUnreadCount();
 
     // Tự động cập nhật số lượng thông báo chưa đọc mỗi 30 giây
-    const interval = setInterval(refreshUnreadCount, 30000);
+    const interval = setInterval(refreshUnreadCount, 15000);
     return () => clearInterval(interval);
   }, []);
 

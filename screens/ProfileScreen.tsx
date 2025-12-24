@@ -1,8 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -16,8 +15,8 @@ import {
   View,
 } from "react-native";
 import { ProfileHeader } from "../components/ProfileHeader";
-// Sử dụng các đối tượng API mới từ shared api.ts với dynamic IP
 import { useAuth } from "../contexts/AuthContext";
+import { useProfileSync } from "../contexts/FollowContext";
 import { postsAPI, usersAPI } from "../services/api";
 
 const { width } = Dimensions.get("window");
@@ -26,6 +25,7 @@ const IMAGE_SIZE = width / 3;
 const ProfileScreen = () => {
   const { id } = useLocalSearchParams();
   const { currentUser, logout } = useAuth();
+  const { followingDelta, postDelta, newPosts, resetAll } = useProfileSync();
   // Nếu có id từ param thì dùng, không thì lấy id của user đang đăng nhập
   const userId = id ? Number(id) : currentUser?.id ?? 0;
   const isOwnProfile = userId === currentUser?.id;
@@ -92,17 +92,17 @@ const ProfileScreen = () => {
     }
   };
 
-  // Reload data mỗi khi screen được focus (navigate vào tab profile)
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  // Load data một lần khi mount (không reload mỗi lần focus)
+  useEffect(() => {
+    loadData();
+  }, [userId]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
+    // Reset tất cả delta khi refresh vì sẽ có data mới từ server
+    resetAll();
     loadData(true);
-  }, [userId]);
+  }, [userId, resetAll]);
 
   const renderFooter = () => {
     if (!isLoadingMore) return null;
@@ -139,12 +139,26 @@ const ProfileScreen = () => {
       </View>
 
       <FlatList
-        data={posts}
+        data={
+          isOwnProfile && newPosts.length > 0
+            ? [...newPosts, ...posts] // Prepend new posts for own profile
+            : posts
+        }
         keyExtractor={(item) => item.id.toString()}
         numColumns={3}
         ListHeaderComponent={
           <ProfileHeader
-            profile={{ ...profile, id: userId }}
+            profile={{
+              ...profile,
+              id: userId,
+              // Áp dụng delta vào following_count và post_count cho MyProfile
+              following_count: isOwnProfile
+                ? (profile?.following_count ?? 0) + followingDelta
+                : profile?.following_count ?? 0,
+              post_count: isOwnProfile
+                ? (profile?.post_count ?? 0) + postDelta
+                : profile?.post_count ?? 0,
+            }}
             isOwnProfile={isOwnProfile}
           />
         }
