@@ -17,6 +17,9 @@ Trước khi bắt đầu, hãy đảm bảo máy bạn đã cài đặt:
 
 ### Bước 1: Clone dự án
 
+FE: https://github.com/BlackSecret164/se405-mobileapp.git
+BE: https://github.com/ntvquyenanhUIT/se405.backend.git
+
 ```bash
 git clone <đường-dẫn-repo>
 cd se405-mobileapp
